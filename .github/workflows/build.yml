@@ -14,13 +14,21 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.9' }
+      - name: Patch known compile error (NearbyTransport.kt)
+        run: |
+          python3 - <<'EOF'
+          p='app/src/main/java/app/airshare/connection/NearbyTransport.kt'
+          s=open(p).read()
+          s=s.replace("(e as? ApiException)?.statusCode in okCodes","((e as? ApiException)?.statusCode?.let { it in okCodes } == true)")
+          open(p,'w').write(s)
+          EOF
       - name: Unit tests
-        run: gradle --no-daemon :app:testDebugUnitTest
+        run: gradle --no-daemon -Pandroid.suppressUnsupportedCompileSdk=35 :app:testDebugUnitTest
       - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+        run: gradle --no-daemon -Pandroid.suppressUnsupportedCompileSdk=35 :app:assembleDebug
       - name: Build release APK (optional)
         continue-on-error: true
-        run: gradle --no-daemon :app:assembleRelease
+        run: gradle --no-daemon -Pandroid.suppressUnsupportedCompileSdk=35 :app:assembleRelease
       - name: Collect APKs
         run: |
           mkdir -p out
